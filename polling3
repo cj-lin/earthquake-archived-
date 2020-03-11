@@ -1,0 +1,12 @@
+$csv = "C:\Windows\System32\GroupPolicy\Machine\Microsoft\Windows NT\Audit\audit.csv"
+$filesys = "{0CCE921D-69AE-11D9-BED3-505054503030}"
+$temp = gc $csv
+if (-not ($temp -contains ",,,$filesys,,,1")) {ac -Path $csv -Value ",,,$filesys,,,1"}
+AuditPol /set /subcategory:$filesys /success:enable
+$acl = Get-ACL -Audit $args
+$audit = New-Object System.Security.AccessControl.FileSystemAuditRule("Everyone", "ListDirectory", "Success")
+$acl.AddAuditRule($audit)
+Set-ACL $args $acl
+$this = split-path -parent $MyInvocation.MyCommand.Definition
+$exefile = join-path $this "cwbearthquake.exe"
+SCHTASKS /Create /RU "System" /SC ONEVENT /MO "*[System[(EventID=4663)]] and *[EventData[(Data[@Name='ObjectName']='$args')]]" /TN earthquake /TR "'$exefile' /S" /EC Security /F
